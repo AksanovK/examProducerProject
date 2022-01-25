@@ -1,0 +1,114 @@
+version: '3.3'
+
+services:
+
+  consumer:
+    image:
+      consumer
+    container_name: consumer
+    networks:
+      - cloud
+    ports:
+      - 81:8081
+    links:
+      - rabbitmq3
+    depends_on:
+      - producer
+    environment:
+      - "SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/app_db"
+      - "SPRING_DATASOURCE_USERNAME=postgres"
+      - "SPRING_DATASOURCE_PASSWORD=qwerty009"
+      - "REDIS_HOST=redis"
+      - "REDIS_PORT=6380"
+      - "SPRING_RABBITMQ_HOST=rabbitmq3"
+      - "SPRING_RABBITMQ_PORT=5672"
+      - "SPRING_RABBITMQ_USERNAME=guest"
+      - "SPRING_RABBITMQ_PASSWORD=guest"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  producer:
+    image:
+      producer
+    container_name: producer
+    networks:
+      - cloud
+    ports:
+      - 80:8080
+    links:
+      - rabbitmq3
+    depends_on:
+      - database
+      - rabbitmq3
+    environment:
+      - "SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/app_db"
+      - "SPRING_DATASOURCE_USERNAME=postgres"
+      - "SPRING_DATASOURCE_PASSWORD=qwerty009"
+      - "REDIS_HOST=redis"
+      - "REDIS_PORT=6380"
+      - "SPRING_RABBITMQ_HOST=rabbitmq3"
+      - "SPRING_RABBITMQ_PORT=5672"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  database:
+    image:
+      postgres
+    container_name: database
+    networks:
+      - cloud
+    ports:
+      - 5433:5432
+    volumes:
+      - database-volume:/data
+    environment:
+      POSTGRES_DB: app_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qwerty009
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  redismq3:
+    image:
+      redis
+    container_name: redis
+    ports:
+      - 6380:6380
+    volumes:
+      - redis-volume:/data
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  rabbitmq3:
+    image:
+      rabbitmq:3.6-management
+    container_name:
+      rabbitmq-container
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+
+volumes:
+  database-volume:
+    external:
+      true
+  redis-volume:
+    external:
+      true
+
+networks:
+  cloud:
+    driver: bridge
